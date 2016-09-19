@@ -50,9 +50,12 @@ module.exports = (robot) ->
   robot.respond /schedule (?:new|add)(?: #(.*))? "(.*?)" ((?:.|\s)*)$/i, (msg) ->
     target_room = msg.match[1]
 
+    text = msg.match[3]
+    text = text.replace(///#{escapeRegExp(org_text)}///g, replaced_text) for replaced_text, org_text of config.list.replace_text
+
     if not is_blank(target_room) and isRestrictedRoom(target_room, msg)
       return msg.send "Creating schedule for the other room is restricted"
-    schedule robot, msg, target_room, msg.match[2], msg.match[3]
+    schedule robot, msg, target_room, msg.match[2], text
 
   robot.respond /schedule list(?: (all|#.*))?/i, (msg) ->
     target_room = msg.match[1]
@@ -91,7 +94,9 @@ module.exports = (robot) ->
       msg.send 'No messages have been scheduled'
 
   robot.respond /schedule (?:upd|update) (\d+) ((?:.|\s)*)/i, (msg) ->
-    updateSchedule robot, msg, msg.match[1], msg.match[2]
+    text = msg.match[2]
+    text = text.replace(///#{escapeRegExp(org_text)}///g, replaced_text) for replaced_text, org_text of config.list.replace_text
+    updateSchedule robot, msg, msg.match[1], text
 
   robot.respond /schedule (?:del|delete|remove|cancel) (\d+)/i, (msg) ->
     cancelSchedule robot, msg, msg.match[1]
@@ -237,6 +242,8 @@ formatDate = (date) ->
     sign = ' GMT-'
   [date.getFullYear(), toTwoDigits(date.getMonth()+1), toTwoDigits(date.getDate())].join('-') + ' ' + date.toLocaleTimeString() + sign + toTwoDigits(offset / 60) + ':' + toTwoDigits(offset % 60);
 
+escapeRegExp = (string) ->
+  string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
 class Job
   constructor: (id, pattern, user, room, message, cb) ->
